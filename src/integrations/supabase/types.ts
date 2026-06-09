@@ -14,7 +14,102 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      credentials: {
+        Row: {
+          anchor_tx: string | null
+          courses: Json
+          credential_uid: string
+          degree: string
+          field: string
+          graduation_year: number
+          id: string
+          institution: string
+          issued_at: string
+          issuer_address: string
+          merkle_root: string
+          signature: string
+          student_address: string
+          student_name: string
+        }
+        Insert: {
+          anchor_tx?: string | null
+          courses: Json
+          credential_uid: string
+          degree: string
+          field: string
+          graduation_year: number
+          id?: string
+          institution: string
+          issued_at?: string
+          issuer_address: string
+          merkle_root: string
+          signature: string
+          student_address: string
+          student_name: string
+        }
+        Update: {
+          anchor_tx?: string | null
+          courses?: Json
+          credential_uid?: string
+          degree?: string
+          field?: string
+          graduation_year?: number
+          id?: string
+          institution?: string
+          issued_at?: string
+          issuer_address?: string
+          merkle_root?: string
+          signature?: string
+          student_address?: string
+          student_name?: string
+        }
+        Relationships: []
+      }
+      presentations: {
+        Row: {
+          created_at: string
+          credential_uid: string
+          id: string
+          payload: Json
+          share_code: string
+        }
+        Insert: {
+          created_at?: string
+          credential_uid: string
+          id?: string
+          payload: Json
+          share_code: string
+        }
+        Update: {
+          created_at?: string
+          credential_uid?: string
+          id?: string
+          payload?: Json
+          share_code?: string
+        }
+        Relationships: []
+      }
+      registry_config: {
+        Row: {
+          chain_id: number
+          contract_address: string | null
+          id: number
+          updated_at: string
+        }
+        Insert: {
+          chain_id?: number
+          contract_address?: string | null
+          id?: number
+          updated_at?: string
+        }
+        Update: {
+          chain_id?: number
+          contract_address?: string | null
+          id?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
