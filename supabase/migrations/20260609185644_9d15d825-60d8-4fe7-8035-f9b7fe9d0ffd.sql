@@ -1,6 +1,7 @@
 CREATE TABLE public.registry_config (
   id INTEGER NOT NULL PRIMARY KEY DEFAULT 1 CHECK (id = 1),
   contract_address TEXT,
+  bootstrap_admin_wallet TEXT,
   chain_id INTEGER NOT NULL DEFAULT 11155111,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -37,4 +38,8 @@ CREATE TABLE public.presentations (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 GRANT ALL ON public.presentations TO service_role;
+
 ALTER TABLE public.presentations ENABLE ROW LEVEL SECURITY;
+UPDATE public.registry_config
+SET bootstrap_admin_wallet = '0xE6d050879a7b698B64f75E7A466996668818679B'
+WHERE id = 1;

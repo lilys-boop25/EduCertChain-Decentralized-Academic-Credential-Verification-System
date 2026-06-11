@@ -91,18 +91,21 @@ export type Database = {
       }
       registry_config: {
         Row: {
+          bootstrap_admin_wallet: string | null
           chain_id: number
           contract_address: string | null
           id: number
           updated_at: string
         }
         Insert: {
+          bootstrap_admin_wallet?: string | null
           chain_id?: number
           contract_address?: string | null
           id?: number
           updated_at?: string
         }
         Update: {
+          bootstrap_admin_wallet?: string | null
           chain_id?: number
           contract_address?: string | null
           id?: number

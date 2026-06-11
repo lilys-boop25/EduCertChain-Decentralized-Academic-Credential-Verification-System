@@ -6,13 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-const navItems = [
-  { to: "/login", label: "Sign in" },
-  { to: "/admin", label: "Admin" },
-  { to: "/university", label: "University" },
-  { to: "/student", label: "Student" },
-  { to: "/verify", label: "Verify" },
-];
+const navItems = [{ to: "/login", label: "Sign in" }];
 
 export function SiteHeader() {
   const { address, onSepolia, connect, connecting, switchToSepolia, hasWallet } = useWallet();
@@ -60,10 +54,7 @@ export function SiteHeader() {
           {address ? (
             <Badge variant="secondary" className="gap-1.5 px-3 py-1.5 font-mono text-xs">
               <span
-                className={cn(
-                  "h-2 w-2 rounded-full",
-                  onSepolia ? "bg-success" : "bg-destructive",
-                )}
+                className={cn("h-2 w-2 rounded-full", onSepolia ? "bg-success" : "bg-destructive")}
               />
               {shortAddress(address)}
             </Badge>

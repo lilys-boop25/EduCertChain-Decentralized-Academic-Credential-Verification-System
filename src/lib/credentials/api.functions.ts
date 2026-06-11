@@ -6,7 +6,13 @@ import { z } from "zod";
 
 const ethAddress = z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum address");
 const hex32 = z.string().regex(/^0x[a-fA-F0-9]{64}$/, "Invalid 32-byte hex value");
-const hexStr = z.string().regex(/^0x[a-fA-F0-9]+$/).max(300);
+const hexStr = z
+  .string()
+  .regex(/^0x[a-fA-F0-9]+$/)
+  .max(300);
+
+export const getRegistryConfigAuthMessage = (contractAddress: string) =>
+  `CredChain registry configuration update\nContract: ${contractAddress.toLowerCase()}`;
 
 const courseSchema = z.object({
   code: z.string().min(1).max(24),
@@ -20,17 +26,64 @@ export const getRegistryConfig = createServerFn({ method: "GET" }).handler(async
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await supabaseAdmin
     .from("registry_config")
-    .select("contract_address, chain_id")
+    .select("contract_address, chain_id, bootstrap_admin_wallet")
     .eq("id", 1)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  return { contractAddress: data?.contract_address ?? null, chainId: data?.chain_id ?? 11155111 };
+  return {
+    contractAddress: data?.contract_address ?? null,
+    chainId: data?.chain_id ?? 11155111,
+    bootstrapAdminWallet: data?.bootstrap_admin_wallet ?? null,
+  };
 });
 
 export const setRegistryConfig = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => z.object({ contractAddress: ethAddress }).parse(input))
+  .validator((input: unknown) =>
+    z
+      .object({
+        contractAddress: ethAddress,
+        adminAddress: ethAddress,
+        signature: hexStr,
+      })
+      .parse(input),
+  )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { verifyMessage } = await import("ethers");
+    const { getReadRegistry } = await import("@/lib/credentials/contract");
+
+    const recovered = verifyMessage(
+      getRegistryConfigAuthMessage(data.contractAddress),
+      data.signature,
+    );
+    if (recovered.toLowerCase() !== data.adminAddress.toLowerCase()) {
+      throw new Error("Registry update signature does not match the connected admin wallet");
+    }
+
+    const { data: config, error: configError } = await supabaseAdmin
+      .from("registry_config")
+      .select("contract_address, bootstrap_admin_wallet")
+      .eq("id", 1)
+      .maybeSingle();
+    if (configError) throw new Error(configError.message);
+
+    const newContractAdmin = (await getReadRegistry(data.contractAddress).admin()) as string;
+    if (newContractAdmin.toLowerCase() !== data.adminAddress.toLowerCase()) {
+      throw new Error("Connected wallet is not the admin of the submitted registry contract");
+    }
+
+    if (config?.contract_address) {
+      const currentAdmin = (await getReadRegistry(config.contract_address).admin()) as string;
+      if (currentAdmin.toLowerCase() !== data.adminAddress.toLowerCase()) {
+        throw new Error("Only the current on-chain contract admin can update registry config");
+      }
+    } else if (
+      !config?.bootstrap_admin_wallet ||
+      config.bootstrap_admin_wallet.toLowerCase() !== data.adminAddress.toLowerCase()
+    ) {
+      throw new Error("Connected wallet is not the configured bootstrap admin");
+    }
+
     const { error } = await supabaseAdmin
       .from("registry_config")
       .update({ contract_address: data.contractAddress, updated_at: new Date().toISOString() })
@@ -55,7 +108,7 @@ const issueSchema = z.object({
 });
 
 export const issueCredential = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => issueSchema.parse(input))
+  .validator((input: unknown) => issueSchema.parse(input))
   .handler(async ({ data }) => {
     // Server-side ECDSA check: the signature over the credential UID must
     // recover to the claimed issuer address.
@@ -90,7 +143,7 @@ const CRED_COLUMNS =
   "credential_uid, student_address, student_name, issuer_address, institution, degree, field, graduation_year, merkle_root, signature, courses, anchor_tx, issued_at";
 
 export const listStudentCredentials = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => listSchema.parse(input))
+  .validator((input: unknown) => listSchema.parse(input))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error } = await supabaseAdmin
@@ -103,7 +156,7 @@ export const listStudentCredentials = createServerFn({ method: "POST" })
   });
 
 export const listIssuerCredentials = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => listSchema.parse(input))
+  .validator((input: unknown) => listSchema.parse(input))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error } = await supabaseAdmin
@@ -137,7 +190,7 @@ const presentationPayload = z.object({
 });
 
 export const createPresentation = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => z.object({ payload: presentationPayload }).parse(input))
+  .validator((input: unknown) => z.object({ payload: presentationPayload }).parse(input))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -154,7 +207,7 @@ export const createPresentation = createServerFn({ method: "POST" })
   });
 
 export const getPresentation = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z.object({ shareCode: z.string().regex(/^[A-Z2-9]{8}$/i) }).parse(input),
   )
   .handler(async ({ data }) => {

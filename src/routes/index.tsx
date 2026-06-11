@@ -1,5 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ShieldCheck, GitBranch, KeyRound, Landmark, GraduationCap, SearchCheck, UserCog, ArrowRight } from "lucide-react";
+import {
+  ShieldCheck,
+  GitBranch,
+  KeyRound,
+  Landmark,
+  GraduationCap,
+  SearchCheck,
+  UserCog,
+  ArrowRight,
+} from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 
 export const Route = createFileRoute("/")({
@@ -43,25 +52,25 @@ const pillars = [
 const roles = [
   {
     icon: UserCog,
-    to: "/admin",
+    to: "/login",
     title: "Admin",
     text: "Deploy the registry contract and authorize university wallet addresses.",
   },
   {
     icon: Landmark,
-    to: "/university",
+    to: "/login",
     title: "University",
     text: "Build transcripts, sign diplomas with your wallet, anchor and revoke on-chain.",
   },
   {
     icon: GraduationCap,
-    to: "/student",
+    to: "/login",
     title: "Student",
     text: "Hold your credentials and disclose only the courses an employer asks for.",
   },
   {
     icon: SearchCheck,
-    to: "/verify",
+    to: "/login",
     title: "Verifier",
     text: "Check signatures, Merkle proofs, issuer authorization, and revocation status.",
   },
@@ -81,19 +90,19 @@ function Index() {
             Digital diplomas with cryptographic selective disclosure
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-relaxed opacity-80 md:text-lg">
-            A decentralized academic credential system. Universities issue ECDSA-signed
-            credentials, students prove exactly what's asked — a degree, a field, a single
-            course grade — and verifiers check everything against an on-chain registry.
+            A decentralized academic credential system. Universities issue ECDSA-signed credentials,
+            students prove exactly what's asked — a degree, a field, a single course grade — and
+            verifiers check everything against an on-chain registry.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
-              to="/university"
+              to="/login"
               className="inline-flex items-center gap-2 rounded-md bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-gold-foreground shadow-elegant transition-transform hover:scale-[1.02]"
             >
               Issue a credential <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
-              to="/verify"
+              to="/login"
               className="inline-flex items-center gap-2 rounded-md border border-primary-foreground/30 px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-primary-foreground/10"
             >
               Verify a proof
@@ -103,7 +112,9 @@ function Index() {
       </section>
 
       <section className="mx-auto max-w-6xl px-4 py-16">
-        <h2 className="font-display text-2xl font-semibold md:text-3xl">How trust is established</h2>
+        <h2 className="font-display text-2xl font-semibold md:text-3xl">
+          How trust is established
+        </h2>
         <div className="mt-8 grid gap-6 md:grid-cols-3">
           {pillars.map((p) => (
             <div key={p.title} className="rounded-xl border border-border bg-card p-6 shadow-card">
@@ -123,7 +134,7 @@ function Index() {
           <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {roles.map((r) => (
               <Link
-                key={r.to}
+                key={r.title}
                 to={r.to}
                 className="group rounded-xl border border-border bg-card p-6 shadow-card transition-all hover:-translate-y-0.5 hover:shadow-elegant"
               >
