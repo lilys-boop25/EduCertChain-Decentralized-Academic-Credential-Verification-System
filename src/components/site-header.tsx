@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const navItems = [
+  { to: "/login", label: "Sign in" },
   { to: "/admin", label: "Admin" },
   { to: "/university", label: "University" },
   { to: "/student", label: "Student" },
