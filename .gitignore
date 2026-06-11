@@ -32,5 +32,5 @@ dist-ssr
 *.sln
 *.sw?
 .md
-report_acl2023/
+report_acl2023
 .zip
