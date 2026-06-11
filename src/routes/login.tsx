@@ -1,18 +1,25 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Wallet, UserCog, Landmark, GraduationCap, SearchCheck, ArrowRight, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import {
+  Wallet, UserCog, Landmark, GraduationCap, SearchCheck,
+  ArrowRight, ArrowLeft, CheckCircle2, AlertCircle, Loader2,
+} from "lucide-react";
 import { useWallet, shortAddress } from "@/hooks/use-wallet";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { getRegistryConfig } from "@/lib/credentials/api.functions";
+import { getReadRegistry } from "@/lib/credentials/contract";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
       { title: "Sign in — CredChain" },
-      { name: "description", content: "Connect your Web3 wallet and choose your role to enter CredChain." },
+      { name: "description", content: "Choose your role and connect your Web3 wallet to enter CredChain." },
     ],
   }),
   component: LoginPage,
@@ -20,11 +27,11 @@ export const Route = createFileRoute("/login")({
 
 type Role = "admin" | "university" | "student" | "verify";
 
-const roles: { id: Role; to: string; icon: typeof UserCog; title: string; text: string }[] = [
-  { id: "admin", to: "/admin", icon: UserCog, title: "Admin", text: "Manage authorized universities on-chain." },
-  { id: "university", to: "/university", icon: Landmark, title: "University", text: "Issue and revoke signed credentials." },
-  { id: "student", to: "/student", icon: GraduationCap, title: "Student", text: "Hold credentials and create selective proofs." },
-  { id: "verify", to: "/verify", icon: SearchCheck, title: "Verifier", text: "Verify a proof — no wallet required." },
+const roles: { id: Role; to: string; icon: typeof UserCog; title: string; text: string; needsWallet: boolean }[] = [
+  { id: "admin", to: "/admin", icon: UserCog, title: "Admin", text: "Must be the wallet that deployed the registry contract.", needsWallet: true },
+  { id: "university", to: "/university", icon: Landmark, title: "University", text: "Must be a wallet authorized by Admin as an issuer.", needsWallet: true },
+  { id: "student", to: "/student", icon: GraduationCap, title: "Student", text: "Any wallet — credentials are bound to your address.", needsWallet: true },
+  { id: "verify", to: "/verify", icon: SearchCheck, title: "Verifier", text: "No wallet required — upload a proof to verify it.", needsWallet: false },
 ];
 
 function LoginPage() {
@@ -32,12 +39,30 @@ function LoginPage() {
   const { address, onSepolia, connect, connecting, switchToSepolia, hasWallet } = useWallet();
   const [role, setRole] = useState<Role | null>(null);
 
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("credchain.role") as Role | null;
-      if (saved) setRole(saved);
-    } catch {}
-  }, []);
+  const fetchConfig = useServerFn(getRegistryConfig);
+  const { data: config } = useQuery({
+    queryKey: ["registry-config"],
+    queryFn: () => fetchConfig(),
+  });
+  const contractAddress = config?.contractAddress ?? null;
+
+  // On-chain role validation
+  const check = useQuery({
+    queryKey: ["role-check", role, address, contractAddress],
+    enabled: !!role && !!address && onSepolia && !!contractAddress && (role === "admin" || role === "university"),
+    queryFn: async () => {
+      const registry = getReadRegistry(contractAddress!);
+      if (role === "admin") {
+        const adminAddr = (await registry.admin()) as string;
+        return { ok: adminAddr.toLowerCase() === address!.toLowerCase(), expected: adminAddr };
+      }
+      if (role === "university") {
+        const authorized = (await registry.authorizedIssuers(address!)) as boolean;
+        return { ok: authorized, expected: null as string | null };
+      }
+      return { ok: true, expected: null };
+    },
+  });
 
   const handleConnect = async () => {
     try {
@@ -47,19 +72,20 @@ function LoginPage() {
     }
   };
 
-  const pickRole = (r: Role) => {
-    setRole(r);
-    try { localStorage.setItem("credchain.role", r); } catch {}
-  };
+  const selected = role ? roles.find((r) => r.id === role)! : null;
+
+  const walletReady = !selected?.needsWallet || (!!address && onSepolia);
+  const roleReady =
+    role === "verify" ||
+    role === "student" ||
+    (role && check.data?.ok === true);
+
+  const ready = walletReady && roleReady && !check.isFetching;
 
   const enter = () => {
-    if (!role) return;
-    const target = roles.find((x) => x.id === role)!;
-    navigate({ to: target.to });
+    if (!ready || !selected) return;
+    navigate({ to: selected.to });
   };
-
-  const needsWallet = role !== "verify";
-  const ready = role === "verify" || (!!address && onSepolia);
 
   return (
     <div className="min-h-screen bg-background">
@@ -68,63 +94,25 @@ function LoginPage() {
         <div className="text-center">
           <h1 className="font-display text-3xl font-semibold md:text-4xl">Sign in to CredChain</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Your wallet is your identity. Pick a role to enter the right portal.
+            Pick a role first — then connect the wallet that matches it.
           </p>
         </div>
 
-        {/* Step 1: wallet */}
+        {/* Step 1: role */}
         <section className="mt-10 rounded-xl border border-border bg-card p-6 shadow-card">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Step 1</p>
-              <h2 className="font-display text-lg font-semibold">Connect wallet</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Required for Admin, University, and Student. Verifier can skip this.
-              </p>
-            </div>
-            {address ? (
-              <Badge variant="secondary" className="gap-1.5 px-3 py-1.5 font-mono text-xs">
-                <span className={cn("h-2 w-2 rounded-full", onSepolia ? "bg-success" : "bg-destructive")} />
-                {shortAddress(address)}
-              </Badge>
-            ) : (
-              <Button onClick={handleConnect} disabled={connecting || !hasWallet}>
-                <Wallet className="h-4 w-4" />
-                {hasWallet ? (connecting ? "Connecting…" : "Connect MetaMask") : "No wallet found"}
-              </Button>
-            )}
-          </div>
-          {address && !onSepolia && (
-            <div className="mt-4 flex items-center justify-between rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm">
-              <span>Wrong network. Switch to Sepolia to continue.</span>
-              <Button size="sm" variant="outline" onClick={() => switchToSepolia().catch(() => {})}>
-                Switch to Sepolia
-              </Button>
-            </div>
-          )}
-          {!hasWallet && (
-            <p className="mt-3 text-xs text-muted-foreground">
-              No MetaMask detected. Install the extension at{" "}
-              <a className="underline" href="https://metamask.io/download" target="_blank" rel="noreferrer">metamask.io</a>.
-            </p>
-          )}
-        </section>
-
-        {/* Step 2: role */}
-        <section className="mt-6 rounded-xl border border-border bg-card p-6 shadow-card">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Step 2</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Step 1</p>
           <h2 className="font-display text-lg font-semibold">Choose your role</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {roles.map((r) => {
-              const selected = role === r.id;
+              const isSel = role === r.id;
               return (
                 <button
                   key={r.id}
                   type="button"
-                  onClick={() => pickRole(r.id)}
+                  onClick={() => setRole(r.id)}
                   className={cn(
-                    "group rounded-lg border bg-background p-4 text-left transition-all hover:border-primary/60",
-                    selected ? "border-primary ring-2 ring-primary/30" : "border-border",
+                    "rounded-lg border bg-background p-4 text-left transition-all hover:border-primary/60",
+                    isSel ? "border-primary ring-2 ring-primary/30" : "border-border",
                   )}
                 >
                   <div className="flex items-start gap-3">
@@ -134,7 +122,7 @@ function LoginPage() {
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
                         <h3 className="font-semibold">{r.title}</h3>
-                        {selected && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                        {isSel && <CheckCircle2 className="h-4 w-4 text-primary" />}
                       </div>
                       <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{r.text}</p>
                     </div>
@@ -145,27 +133,112 @@ function LoginPage() {
           </div>
         </section>
 
-        {/* Step 3: enter */}
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs text-muted-foreground">
-            {role
-              ? needsWallet
-                ? ready
-                  ? "Ready to enter."
-                  : "Connect your wallet on Sepolia to continue."
-                : "Verifier doesn't need a wallet."
-              : "Select a role to continue."}
-          </p>
-          <div className="flex gap-2">
-            <Link to="/" className="inline-flex items-center rounded-md border border-input px-4 py-2 text-sm font-medium hover:bg-accent">
-              Back
-            </Link>
-            <Button onClick={enter} disabled={!role || !ready}>
-              Enter portal <ArrowRight className="h-4 w-4" />
-            </Button>
+        {/* Step 2: wallet + validation */}
+        <section
+          className={cn(
+            "mt-6 rounded-xl border bg-card p-6 shadow-card transition-opacity",
+            !role && "opacity-60 pointer-events-none",
+            "border-border",
+          )}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Step 2</p>
+              <h2 className="font-display text-lg font-semibold">
+                {selected?.needsWallet === false ? "No wallet needed" : "Connect wallet"}
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {!role && "Select a role above first."}
+                {selected?.needsWallet === false && "Verifier is public — anyone can verify a proof."}
+                {selected?.needsWallet && "Use the wallet that matches the chosen role."}
+              </p>
+            </div>
+            {selected?.needsWallet && (
+              address ? (
+                <Badge variant="secondary" className="gap-1.5 px-3 py-1.5 font-mono text-xs">
+                  <span className={cn("h-2 w-2 rounded-full", onSepolia ? "bg-success" : "bg-destructive")} />
+                  {shortAddress(address)}
+                </Badge>
+              ) : (
+                <Button onClick={handleConnect} disabled={connecting || !hasWallet}>
+                  <Wallet className="h-4 w-4" />
+                  {hasWallet ? (connecting ? "Connecting…" : "Connect MetaMask") : "No wallet found"}
+                </Button>
+              )
+            )}
           </div>
+
+          {selected?.needsWallet && address && !onSepolia && (
+            <div className="mt-4 flex items-center justify-between rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm">
+              <span>Wrong network. Switch to Sepolia.</span>
+              <Button size="sm" variant="outline" onClick={() => switchToSepolia().catch(() => {})}>
+                Switch to Sepolia
+              </Button>
+            </div>
+          )}
+
+          {/* Role validation results */}
+          {selected?.needsWallet && address && onSepolia && (
+            <div className="mt-4 space-y-2">
+              {!contractAddress && (role === "admin" || role === "university") && (
+                <Alert tone="warn">
+                  Registry contract is not configured yet. Deploy it from the Admin portal first.
+                </Alert>
+              )}
+
+              {(role === "admin" || role === "university") && contractAddress && (
+                check.isFetching ? (
+                  <Alert tone="info"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Checking on-chain role…</Alert>
+                ) : check.isError ? (
+                  <Alert tone="warn">Could not reach the registry contract. Try again.</Alert>
+                ) : check.data?.ok ? (
+                  <Alert tone="ok">
+                    {role === "admin"
+                      ? "This wallet is the contract Admin."
+                      : "This wallet is an authorized University issuer."}
+                  </Alert>
+                ) : (
+                  <Alert tone="error">
+                    {role === "admin"
+                      ? <>This wallet is not the Admin. Expected: <span className="font-mono">{shortAddress(check.data?.expected)}</span>. Switch wallet in MetaMask.</>
+                      : <>This wallet is not an authorized issuer. Ask the Admin to add it via <span className="font-mono">addIssuer</span>.</>}
+                  </Alert>
+                )
+              )}
+
+              {role === "student" && (
+                <Alert tone="ok">Connected. Any wallet can hold credentials.</Alert>
+              )}
+            </div>
+          )}
+        </section>
+
+        {/* Enter */}
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+          <Link to="/" className="inline-flex items-center gap-1.5 rounded-md border border-input px-4 py-2 text-sm font-medium hover:bg-accent">
+            <ArrowLeft className="h-4 w-4" /> Back
+          </Link>
+          <Button onClick={enter} disabled={!ready}>
+            Enter portal <ArrowRight className="h-4 w-4" />
+          </Button>
         </div>
       </main>
+    </div>
+  );
+}
+
+function Alert({ tone, children }: { tone: "ok" | "warn" | "error" | "info"; children: React.ReactNode }) {
+  const styles = {
+    ok: "border-success/40 bg-success/10 text-foreground",
+    warn: "border-amber-500/40 bg-amber-500/10 text-foreground",
+    error: "border-destructive/40 bg-destructive/10 text-foreground",
+    info: "border-border bg-muted text-foreground",
+  }[tone];
+  const Icon = tone === "ok" ? CheckCircle2 : tone === "error" || tone === "warn" ? AlertCircle : Loader2;
+  return (
+    <div className={cn("flex items-center gap-2 rounded-md border px-3 py-2 text-sm", styles)}>
+      {tone !== "info" && <Icon className="h-3.5 w-3.5 shrink-0" />}
+      <div className="flex-1">{children}</div>
     </div>
   );
 }
