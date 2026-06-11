@@ -1,0 +1,13 @@
+\section{Introduction}
+
+Bằng cấp số giúp giảm chi phí xác minh hồ sơ học thuật, nhưng các hệ thống lưu trữ tập trung thường tạo ra hai vấn đề: verifier phải tin hoàn toàn vào nhà vận hành hệ thống, và sinh viên có thể bị buộc tiết lộ nhiều thông tin hơn mức cần thiết. Ví dụ, một nhà tuyển dụng chỉ cần biết sinh viên đã học một vài học phần liên quan, nhưng bảng điểm đầy đủ lại chứa toàn bộ điểm số, học phần và dữ liệu cá nhân.
+
+Project CredChain giải quyết bài toán này bằng cách tách dữ liệu thành hai lớp. Lớp off-chain lưu credential đầy đủ, salted transcript và presentation tạm thời trong Supabase. Lớp on-chain chỉ lưu các thông tin tối thiểu cần cho niềm tin công khai: danh sách issuer được ủy quyền, credential id đã được issuer neo lên chain, và trạng thái thu hồi. Nhờ vậy, dữ liệu học thuật chi tiết không bị đưa lên blockchain, trong khi verifier vẫn có căn cứ độc lập để kiểm tra nguồn gốc và tính hợp lệ.
+
+Báo cáo được tổ chức theo cấu trúc của ACL 2023 paper format nhưng thay các chương bằng các section. Các đóng góp chính gồm:
+\begin{itemize}[leftmargin=*]
+  \item Thiết kế luồng cấp phát credential có chữ ký ECDSA và credential UID tất định.
+  \item Sử dụng cây Merkle với salt theo từng học phần để sinh viên chỉ tiết lộ một tập con học phần.
+  \item Xây dựng smart contract \texttt{CredentialRegistry} để quản lý issuer, anchor credential và revocation.
+  \item Cài đặt giao diện bốn vai trò: Admin, University, Student và Verifier bằng React, TanStack Start, ethers.js và Supabase.
+\end{itemize}

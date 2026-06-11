@@ -1,0 +1,33 @@
+\begin{adjustbox}{max width=\textwidth}
+\begin{tikzpicture}[
+  node distance=0.75cm and 0.8cm,
+  step/.style={draw, rounded corners=3pt, align=center, font=\small, minimum width=2.75cm, minimum height=0.85cm, fill=blue!6},
+  calc/.style={step, fill=orange!10},
+  chain/.style={step, fill=green!10},
+  out/.style={step, fill=purple!8},
+  arrow/.style={-Latex, thick}
+]
+\node[step] (admin) {Admin deploys\\registry};
+\node[chain, right=of admin] (issuer) {Authorize\\university wallet};
+\node[step, right=of issuer] (input) {University inputs\\metadata + courses};
+\node[calc, right=of input] (root) {Salt leaves\\build Merkle root};
+\node[calc, below=of root] (uid) {Compute UID\\sign with ECDSA};
+\node[chain, left=of uid] (anchor) {Anchor UID\\on Sepolia};
+\node[out, left=of anchor] (store) {Store full\\credential off-chain};
+\node[step, below=of store] (student) {Student selects\\courses};
+\node[calc, right=of student] (proof) {Generate\\Merkle proofs};
+\node[out, right=of proof] (presentation) {Presentation JSON\\or share code};
+\node[chain, right=of presentation] (verify) {Verifier checks\\signature + proof + chain};
+
+\draw[arrow] (admin) -- (issuer);
+\draw[arrow] (issuer) -- (input);
+\draw[arrow] (input) -- (root);
+\draw[arrow] (root) -- (uid);
+\draw[arrow] (uid) -- (anchor);
+\draw[arrow] (anchor) -- (store);
+\draw[arrow] (store) -- (student);
+\draw[arrow] (student) -- (proof);
+\draw[arrow] (proof) -- (presentation);
+\draw[arrow] (presentation) -- (verify);
+\end{tikzpicture}
+\end{adjustbox}

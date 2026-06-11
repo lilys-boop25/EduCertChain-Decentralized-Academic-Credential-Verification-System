@@ -1,0 +1,21 @@
+\section{Security Analysis}
+
+\subsection{Threat Model}
+
+Hệ thống giả định khóa ví của Admin, University và Student được bảo vệ bởi người dùng và MetaMask. Supabase có thể là nguồn lưu trữ tiện lợi nhưng verifier không cần tin Supabase một cách tuyệt đối: dữ liệu presentation vẫn phải qua chữ ký, Merkle proof và trạng thái on-chain. Blockchain Sepolia được dùng cho demo; khi triển khai thật cần dùng mainnet hoặc một chain được tổ chức chấp nhận.
+
+\subsection{Tampering Resistance}
+
+Nếu attacker sửa metadata, credential UID không còn khớp. Nếu sửa học phần disclosure, leaf hash thay đổi và Merkle proof fail. Nếu thay issuer address, chữ ký ECDSA không recover về issuer đó. Nếu tạo credential giả nhưng không anchor on-chain, bước \texttt{anchoredBy(uid)} sẽ fail.
+
+\subsection{Selective Disclosure và Privacy}
+
+Salt trên từng học phần làm giảm rủi ro brute force các course/grade bị ẩn. Nếu không có salt, attacker có thể thử các tổ hợp course phổ biến để đoán leaf. Tuy nhiên, presentation hiện vẫn tiết lộ tổng số học phần $n$ và metadata bằng cấp. Đây là trade-off giữa tính đơn giản và privacy.
+
+\subsection{Revocation}
+
+Revocation được lưu on-chain nên verifier có thể kiểm tra trạng thái mới nhất. Issuer hoặc Admin có thể revoke credential. Một presentation cũ sẽ không còn pass nếu \texttt{revoked[uid] = true}.
+
+\subsection{Operational Risks}
+
+Các rủi ro vận hành gồm mất khóa Admin, issuer ký nhầm credential, RPC Sepolia không ổn định, hoặc service role key Supabase bị lộ. Biện pháp giảm thiểu gồm multi-sig cho Admin, audit contract, rate limit share code, xoay vòng secret và logging server-side cho các thao tác nhạy cảm.

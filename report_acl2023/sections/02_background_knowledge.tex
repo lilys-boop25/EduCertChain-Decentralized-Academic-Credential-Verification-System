@@ -1,0 +1,51 @@
+\section{Background Knowledge}
+
+\subsection{Verifiable Credential}
+
+Một verifiable credential có ba thành phần logic: metadata về chủ thể, bằng chứng issuer đã phát hành credential, và cơ chế cho verifier kiểm tra credential mà không cần gọi trực tiếp issuer. Trong project này, metadata gồm ví sinh viên, tên sinh viên, trường, ngành, năm tốt nghiệp và Merkle root của transcript. Issuer là ví Ethereum của trường đại học đã được Admin ủy quyền trên smart contract.
+
+\subsection{Hash và Credential UID}
+
+Hệ thống dùng hàm băm Keccak-256, ký hiệu là $H(\cdot)$. Với metadata $m$, credential UID được tính tất định:
+\begin{equation}
+  uid = H(addr_s \parallel name_s \parallel inst \parallel degree \parallel field \parallel year \parallel root),
+\end{equation}
+trong đó $addr_s$ là địa chỉ ví sinh viên và $root$ là Merkle root của transcript. Nếu metadata hoặc transcript root bị thay đổi, verifier sẽ tính ra UID khác.
+
+\subsection{Merkle Tree và Selective Disclosure}
+
+Mỗi học phần được gắn một salt ngẫu nhiên $s_i$ trước khi băm thành leaf:
+\begin{equation}
+  \ell_i = H(s_i \parallel code_i \parallel title_i \parallel grade_i \parallel credits_i).
+\end{equation}
+Khi ghép hai node, hệ thống sắp xếp hai hash theo thứ tự từ điển trước khi băm:
+\begin{equation}
+  parent(a,b) = H(\min(a,b) \parallel \max(a,b)).
+\end{equation}
+Cách này giúp proof không cần lưu hướng trái/phải. Một Merkle proof $\pi_i$ hợp lệ nếu việc băm lần lượt leaf $\ell_i$ với các sibling trong proof tạo lại đúng root:
+\begin{equation}
+  VerifyMerkle(\ell_i, \pi_i, root) = 1.
+\end{equation}
+
+\begin{figure}[t]
+  \centering
+  \input{figures/merkle_tree}
+  \caption{Mô hình Merkle tree cho bảng điểm. Các học phần không được tiết lộ vẫn được ràng buộc bởi root đã ký.}
+  \label{fig:merkle}
+\end{figure}
+
+\subsection{ECDSA trên Ethereum}
+
+University ký thông điệp là credential UID bằng khóa ví Ethereum:
+\begin{equation}
+  \sigma = Sign(sk_I, uid).
+\end{equation}
+Verifier khôi phục địa chỉ issuer từ chữ ký EIP-191:
+\begin{equation}
+  addr'_I = Recover(uid, \sigma).
+\end{equation}
+Chữ ký được chấp nhận khi $addr'_I = addr_I$ và $addr_I$ đang được smart contract đánh dấu là issuer hợp lệ.
+
+\subsection{On-chain Registry}
+
+Smart contract \texttt{CredentialRegistry} lưu ba mapping chính: \texttt{authorizedIssuers[address]}, \texttt{anchoredBy[bytes32]} và \texttt{revoked[bytes32]}. Admin thêm hoặc gỡ issuer; University neo credential bằng \texttt{anchorCredential(uid)}; issuer hoặc Admin có thể gọi \texttt{revokeCredential(uid)}.

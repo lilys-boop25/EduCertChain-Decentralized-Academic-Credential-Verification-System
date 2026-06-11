@@ -1,0 +1,36 @@
+\section{Testing}
+
+Kiểm thử tập trung vào tính đúng đắn của mật mã, luồng role-based access và trạng thái on-chain. Bảng~\ref{tab:testcases} tóm tắt các test case chính nên chạy khi demo hoặc nghiệm thu.
+
+\begin{table*}[t]
+\centering
+\small
+\begin{tabular}{p{0.18\linewidth}p{0.34\linewidth}p{0.38\linewidth}}
+\toprule
+\textbf{Nhóm test} & \textbf{Input / thao tác} & \textbf{Kết quả kỳ vọng} \\
+\midrule
+Role check & Chọn Admin bằng ví không phải \texttt{contract.admin()} & Portal bị khóa, hiển thị cảnh báo sai role. \\
+Issuer authorization & University chưa nằm trong \texttt{authorizedIssuers} & Không thể issue vì transaction anchor sẽ revert hoặc UI báo chưa authorized. \\
+Credential UID & Sửa metadata trong presentation JSON & Kiểm tra UID thất bại vì hash tính lại khác UID đã ký. \\
+ECDSA signature & Thay issuer address hoặc signature & \texttt{Recover(uid, sigma)} không khớp issuer khai báo. \\
+Merkle proof & Sửa grade/course trong disclosed course & Leaf hash thay đổi, proof không tạo lại đúng Merkle root. \\
+Anchor check & Dùng credential chưa gọi \texttt{anchorCredential} & Verifier báo credential chưa được anchor on-chain. \\
+Revocation & University revoke credential sau khi issue & Verifier báo fail ở bước revocation. \\
+Share code & Nhập share code sai format hoặc không tồn tại & Server từ chối hoặc trả về không tìm thấy presentation. \\
+\bottomrule
+\end{tabular}
+\caption{Bộ test case chức năng và bảo mật cho CredChain.}
+\label{tab:testcases}
+\end{table*}
+
+\subsection{Unit-level Checks}
+
+Các hàm \texttt{hashCourse}, \texttt{merkleRoot}, \texttt{merkleProof}, \texttt{verifyMerkleProof}, \texttt{computeCredentialUid} và \texttt{recoverIssuer} nên được kiểm thử độc lập với dữ liệu cố định. Test cần bao phủ cây có số leaf chẵn, lẻ, một leaf và proof không hợp lệ.
+
+\subsection{Integration Checks}
+
+Integration test chạy qua MetaMask/Sepolia hoặc local fork cần xác nhận rằng Admin có thể thêm issuer, University có thể anchor credential, và contract trả về đúng \texttt{anchoredBy(uid)}. Với Supabase, cần kiểm tra insert credential, list theo student address, tạo presentation và lấy lại bằng share code.
+
+\subsection{Manual Demo Verification}
+
+Vì project phụ thuộc ví trình duyệt và Sepolia, manual test vẫn quan trọng. Khi demo, nên chuẩn bị trước ba ví: Admin, University và Student, kèm Sepolia ETH cho Admin/University. Các transaction hash anchor và revoke nên được mở trên Sepolia explorer để chứng minh trạng thái public.

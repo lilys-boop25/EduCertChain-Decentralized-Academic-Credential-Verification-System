@@ -1,0 +1,30 @@
+\begin{adjustbox}{max width=\textwidth}
+\begin{tikzpicture}[
+  node distance=0.9cm and 1.0cm,
+  box/.style={draw, rounded corners=3pt, align=center, font=\small, minimum width=3.0cm, minimum height=0.85cm},
+  store/.style={box, cylinder, shape border rotate=90, aspect=0.22, minimum height=1.0cm},
+  actor/.style={box, fill=blue!7},
+  service/.style={box, fill=orange!10},
+  chain/.style={box, fill=green!10},
+  db/.style={store, fill=purple!8},
+  arrow/.style={-Latex, thick},
+  soft/.style={-Latex, dashed}
+]
+\node[actor] (roles) {Users\\Admin / University / Student / Verifier};
+\node[service, right=of roles] (frontend) {React + TanStack Router\\Role portals};
+\node[service, right=of frontend] (server) {TanStack Start\\Server functions + Zod};
+\node[db, below=of server] (supabase) {Supabase\\registry\_config / credentials / presentations};
+\node[actor, below=of frontend] (wallet) {MetaMask\\sign + send tx};
+\node[chain, right=of server] (contract) {CredentialRegistry\\Sepolia smart contract};
+\node[chain, below=of contract] (rpc) {Public RPC\\Sepolia explorer};
+
+\draw[arrow] (roles) -- (frontend);
+\draw[arrow] (frontend) -- node[above, font=\scriptsize]{API calls} (server);
+\draw[arrow] (server) -- node[right, font=\scriptsize]{service role} (supabase);
+\draw[arrow] (frontend) -- node[left, font=\scriptsize]{connect/sign} (wallet);
+\draw[arrow] (wallet) -- node[below, font=\scriptsize]{transactions} (contract);
+\draw[soft] (server) -- node[above, font=\scriptsize]{read checks} (contract);
+\draw[soft] (contract) -- (rpc);
+\draw[soft] (frontend) -- node[above, sloped, font=\scriptsize]{verify reads} (contract);
+\end{tikzpicture}
+\end{adjustbox}

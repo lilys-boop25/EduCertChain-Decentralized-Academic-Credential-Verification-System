@@ -1,0 +1,71 @@
+\documentclass[11pt]{article}
+
+\usepackage[review]{acl2023}
+\usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc}
+\usepackage[vietnamese]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{adjustbox}
+\usepackage{hyperref}
+\usepackage{url}
+\usetikzlibrary{arrows.meta,positioning,fit,calc,shapes.geometric}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!55!black,
+  citecolor=blue!55!black,
+  urlcolor=blue!55!black
+}
+
+\title{CredChain: Hệ thống cấp phát và xác minh bằng cấp học thuật có chọn lọc trên Blockchain}
+\author{Báo cáo project \\
+  \texttt{D:\textbackslash Blockchain\textbackslash verifiable-degrees}}
+
+\begin{document}
+\twocolumn[
+\maketitle
+\begin{onecolabstract}
+\input{sections/00_abstract}
+\end{onecolabstract}
+]
+
+\input{sections/01_introduction}
+\input{sections/02_background_knowledge}
+\input{sections/03_system_architecture}
+\input{sections/04_methodology}
+\input{sections/05_testing}
+\input{sections/06_demo_scenario}
+\input{sections/07_security_analysis}
+\input{sections/08_conclusion_and_future_work}
+
+\begin{thebibliography}{9}
+\bibitem{nakamoto2008bitcoin}
+Satoshi Nakamoto. 2008.
+\newblock Bitcoin: A Peer-to-Peer Electronic Cash System.
+
+\bibitem{wood2014ethereum}
+Gavin Wood. 2014.
+\newblock Ethereum: A Secure Decentralised Generalised Transaction Ledger.
+
+\bibitem{merkle1988digital}
+Ralph C. Merkle. 1988.
+\newblock A Digital Signature Based on a Conventional Encryption Function.
+
+\bibitem{w3cvc}
+W3C. 2022.
+\newblock Verifiable Credentials Data Model v1.1.
+
+\bibitem{ethers}
+ethers.org. 2026.
+\newblock ethers.js Documentation.
+
+\bibitem{supabase}
+Supabase. 2026.
+\newblock Supabase Documentation.
+\end{thebibliography}
+
+\end{document}

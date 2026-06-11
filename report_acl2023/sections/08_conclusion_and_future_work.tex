@@ -1,0 +1,11 @@
+\section{Conclusion, Limitations, and Future Work}
+
+CredChain cho thấy một cách triển khai thực tế cho verifiable academic credential với selective disclosure. Thiết kế kết hợp off-chain storage để giữ dữ liệu chi tiết, ECDSA để chứng minh issuer, Merkle tree để chứng minh từng học phần được chọn, và smart contract để cung cấp nguồn sự thật công khai cho issuer registry, anchor và revocation.
+
+\subsection{Limitations}
+
+Project hiện là demo trên Sepolia, chưa phải hệ thống production. Contract chưa được audit độc lập, Admin vẫn là một địa chỉ đơn lẻ, dữ liệu full transcript vẫn nằm trong Supabase, và share code chưa có cơ chế hết hạn hoặc access control mạnh. Selective disclosure dựa trên Merkle proof giúp ẩn học phần không chọn, nhưng vẫn tiết lộ tổng số học phần và metadata chung. Ngoài ra, UX còn phụ thuộc MetaMask và trạng thái mạng Sepolia.
+
+\subsection{Future Work}
+
+Các hướng phát triển tiếp theo gồm: chuyển Admin sang multi-sig, thêm expiry cho presentation/share code, mã hóa transcript trong Supabase bằng khóa của Student, bổ sung zero-knowledge proof cho các mệnh đề như GPA lớn hơn ngưỡng mà không lộ điểm, hỗ trợ DID/W3C Verifiable Credentials chuẩn hơn, viết test tự động cho Merkle/ECDSA/contract, và triển khai dashboard audit cho Admin và University.
